@@ -1,5 +1,6 @@
-
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from pydantic import BaseModel
+from datetime import datetime, timedelta
 from fastapi.middleware.cors import CORSMiddleware
 import csv
 import io
@@ -13,37 +14,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.post("/upload_csv")
-def upload_csv(arquivo: UploadFile = File(...)):
-    try:
-        marcadores = []
-        wrapper = io.TextIOWrapper(arquivo.file, encoding="utf-8")
-        leitor = csv.DictReader(wrapper)
-        for linha in leitor:
-            if "latitude" in linha and "longitude" in linha:
-                try:
-                    lat = float(linha["latitude"])
-                    lng = float(linha["longitude"])
-                    if -90 <= lat <= 90 and -180 <= lng <= 180:
-                        marcadores.append({
-                            "tipo": linha.get("tipo_crime", ""),
-                            "bairro": linha.get("bairro", ""),
-                            "hora": linha.get("hora", ""),
-                            "lat": lat,
-                            "lng": lng
-                        })
-                except:
-                    continue
-        wrapper.detach()
-        return {
-            "mensagem": f"Arquivo processado com {len(marcadores)} registros válidos.",
-            "marcadores": marcadores
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao processar CSV: {str(e)}")
-
-from pydantic import BaseModel
 
 fake_users_db = {
     "teste@bh.com": {
@@ -87,3 +57,32 @@ def login(dados: Login):
         "token": "token_fake",
         "permissao": user["permissao"]
     }
+
+@app.post("/upload_csv")
+def upload_csv(arquivo: UploadFile = File(...)):
+    try:
+        marcadores = []
+        wrapper = io.TextIOWrapper(arquivo.file, encoding="utf-8")
+        leitor = csv.DictReader(wrapper)
+        for linha in leitor:
+            if "latitude" in linha and "longitude" in linha:
+                try:
+                    lat = float(linha["latitude"])
+                    lng = float(linha["longitude"])
+                    if -90 <= lat <= 90 and -180 <= lng <= 180:
+                        marcadores.append({
+                            "tipo": linha.get("tipo_crime", ""),
+                            "bairro": linha.get("bairro", ""),
+                            "hora": linha.get("hora", ""),
+                            "lat": lat,
+                            "lng": lng
+                        })
+                except:
+                    continue
+        wrapper.detach()
+        return {
+            "mensagem": f"Arquivo processado com {len(marcadores)} registros válidos.",
+            "marcadores": marcadores
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar CSV: {str(e)}")
