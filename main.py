@@ -53,3 +53,28 @@ def login(dados: Login):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+
+@app.post("/upload_csv")
+def upload_csv(arquivo: UploadFile = File(...)):
+    try:
+        conteudo = arquivo.file.read().decode("utf-8")
+        leitor = csv.DictReader(io.StringIO(conteudo))
+        marcadores = []
+        for linha in leitor:
+            try:
+                marcadores.append({
+                    "tipo": linha.get("tipo_crime", ""),
+                    "bairro": linha.get("bairro", ""),
+                    "hora": linha.get("hora", ""),
+                    "lat": float(linha["latitude"]),
+                    "lng": float(linha["longitude"])
+                })
+            except:
+                continue
+        return {
+            "mensagem": f"Arquivo recebido com {len(marcadores)} registros.",
+            "marcadores": marcadores
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar CSV: {str(e)}")
+
