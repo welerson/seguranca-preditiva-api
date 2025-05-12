@@ -16,10 +16,8 @@ app.add_middleware(
 @app.post("/upload_csv")
 def upload_csv(arquivo: UploadFile = File(...)):
     try:
-        conteudo = arquivo.file.read().decode("utf-8")
-        leitor = csv.DictReader(io.StringIO(conteudo))
         marcadores = []
-        for linha in leitor:
+        for linha in csv.DictReader(io.TextIOWrapper(arquivo.file, encoding="utf-8")):
             try:
                 marcadores.append({
                     "tipo": linha.get("tipo_crime", ""),
@@ -36,3 +34,4 @@ def upload_csv(arquivo: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar CSV: {str(e)}")
+
