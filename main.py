@@ -42,3 +42,48 @@ def upload_csv(arquivo: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar CSV: {str(e)}")
+
+from pydantic import BaseModel
+
+fake_users_db = {
+    "teste@bh.com": {
+        "senha": "123456",
+        "data_criacao": "2025-05-10",
+        "dias_de_teste": 7,
+        "permissao": "GCM"
+    }
+}
+
+class Login(BaseModel):
+    email: str
+    senha: str
+
+@app.post("/cadastro")
+def cadastro(dados: Login):
+    if dados.email in fake_users_db:
+        raise HTTPException(status_code=400, detail="Usuário já cadastrado")
+
+    fake_users_db[dados.email] = {
+        "senha": dados.senha,
+        "data_criacao": datetime.now().strftime("%Y-%m-%d"),
+        "dias_de_teste": 7,
+        "permissao": "GCM"
+    }
+    return {"mensagem": "Usuário cadastrado com sucesso. Você já pode fazer login."}
+
+@app.post("/login")
+def login(dados: Login):
+    user = fake_users_db.get(dados.email)
+    if not user or user["senha"] != dados.senha:
+        raise HTTPException(status_code=401, detail="Email ou senha incorretos")
+
+    data_criacao = datetime.strptime(user["data_criacao"], "%Y-%m-%d")
+    fim_teste = data_criacao + timedelta(days=user["dias_de_teste"])
+    expirado = datetime.now() > fim_teste
+
+    return {
+        "status": "ok",
+        "expirado": expirado,
+        "token": "token_fake",
+        "permissao": user["permissao"]
+    }
